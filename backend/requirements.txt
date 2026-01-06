@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlite-utils
+httpx
+python-dotenv
+apscheduler
+pydantic
+pydantic-settings
+email-validator

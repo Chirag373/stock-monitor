@@ -10,15 +10,19 @@ from . import notifier
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("StockEngine")
 
-# Validate API Key on startup
-API_KEY = os.environ.get("TWELVEDATA_API_KEY")
+# Validate API Key on startup (Fixed variable name to match README)
+API_KEY = os.environ.get("TWELVE_DATA_API_KEY")
+if not API_KEY:
+    # Fallback to check if user used the other name
+    API_KEY = os.environ.get("TWELVEDATA_API_KEY")
+
 if not API_KEY:
     raise RuntimeError(
-        "CRITICAL: TWELVEDATA_API_KEY is not set in environment variables."
+        "CRITICAL: TWELVE_DATA_API_KEY is not set in environment variables."
     )
 
 TD = TDClient(apikey=API_KEY)
-RATE_LIMIT_DELAY = 10
+RATE_LIMIT_DELAY = 10  # Seconds between API calls to avoid limits
 
 # --- CORE DATA FETCHING ---
 
@@ -116,11 +120,12 @@ def check_crossover(
         required_distance = threshold_percent / 100.0
 
         if distance < required_distance:
-            # Update state so we don't "freeze" logic on old prices, but don't alert.
+            # FIX: Do NOT update state. 
+            # We want to keep the "old" price (on the other side of DMA) as the reference
+            # until the price moves explicitly beyond the threshold.
             logger.info(
-                f"{symbol}: Cross too weak ({distance:.2%} < {required_distance:.2%}). Updating state only."
+                f"{symbol}: Weak cross ignored ({distance:.2%} < {required_distance:.2%}). Keeping previous state."
             )
-            database.update_market_state(symbol, curr_price, curr_dma)
             return
 
         # Trigger Logic & Explicit State Update
@@ -137,6 +142,7 @@ def check_crossover(
             return
 
     # 5. Save State (No cross occurred)
+    # Only update if no potential cross is pending validation, or simply update regular tracking.
     database.update_market_state(symbol, curr_price, curr_dma)
 
 

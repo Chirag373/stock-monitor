@@ -8,11 +8,16 @@ from email.mime.multipart import MIMEMultipart
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Fixed Env Vars to match README.md
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SENDER_EMAIL = os.getenv("SMTP_EMAIL")
-SENDER_PASSWORD = os.getenv("SMTP_PASSWORD")
-TARGET_EMAIL = os.getenv("TARGET_EMAIL")
+SMTP_USERNAME = os.getenv("SMTP_USERNAME")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+
+# Allow separate "From" address, but default to Username
+SENDER_EMAIL = os.getenv("EMAIL_FROM", SMTP_USERNAME)
+TARGET_EMAIL = os.getenv("EMAIL_TO")
+
 CHART_URL = os.getenv("CHART_URL", "#")
 
 
@@ -23,8 +28,8 @@ def send_alert_email(
     dma_value: float,
     condition: str = "crossed below",
 ) -> bool:
-    if not SENDER_EMAIL or not SENDER_PASSWORD or not TARGET_EMAIL:
-        logger.error("Email credentials not set.")
+    if not SMTP_USERNAME or not SMTP_PASSWORD or not TARGET_EMAIL:
+        logger.error("Email credentials (SMTP_USERNAME, SMTP_PASSWORD, EMAIL_TO) not set.")
         return False
 
     if price <= 0 or dma_value <= 0:
@@ -43,8 +48,8 @@ def send_alert_email(
     DMA: ${dma_value:,.2f}
     Time: {alert_time}
 
-View Chart: {CHART_URL}
-"""
+    View Chart: {CHART_URL}
+    """
 
     html_body = f"""
     <html>
@@ -72,7 +77,7 @@ View Chart: {CHART_URL}
 
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
             server.sendmail(SENDER_EMAIL, TARGET_EMAIL, msg.as_string())
 
         logger.info(f"✅ Alert email sent for {symbol}")

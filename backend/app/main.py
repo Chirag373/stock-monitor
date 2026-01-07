@@ -1,10 +1,41 @@
 import os
+import asyncio
+import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Header
 from typing import List, Optional
+from dotenv import load_dotenv
+
+# Load env vars for local dev
+load_dotenv()
+
 from . import database, models, engine
 
-app = FastAPI(title="Stock Notifier API")
+# Logger for the scheduler
+logger = logging.getLogger("Scheduler")
 
+# Background Task Loop
+async def run_scheduler():
+    """Runs the engine check every 300 seconds (5 minutes)."""
+    while True:
+        logger.info("⏳ Scheduler: Triggering check cycle...")
+        try:
+            # Run the synchronous engine logic in a thread pool
+            await asyncio.to_thread(engine.run_checks)
+        except Exception as e:
+            logger.error(f"Scheduler Error: {e}")
+        
+        # Wait for 5 minutes before next check
+        await asyncio.sleep(300) 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Start the background loop
+    asyncio.create_task(run_scheduler())
+    yield
+    # Shutdown logic (if any) can go here
+
+app = FastAPI(title="Stock Notifier API", lifespan=lifespan)
 
 @app.get("/")
 def health_check():
@@ -66,11 +97,10 @@ def force_check_now(
 ):
     """
     Manually trigger an engine run. Protected by Admin Token.
-    NOTE: Do not call this if you have a CRON job running to avoid API rate limits.
     """
     expected_token = os.getenv("ADMIN_TOKEN")
 
-    if not expected_token or x_admin_token != expected_token:
+    if expected_token and x_admin_token != expected_token:
         raise HTTPException(status_code=403, detail="Forbidden: Invalid Admin Token")
 
     background_tasks.add_task(engine.run_checks)

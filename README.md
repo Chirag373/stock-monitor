@@ -10,23 +10,23 @@ stock-monitor/
 │   ├── app/
 │   │   ├── __init__.py
 │   │   ├── main.py            # FastAPI entry point & Scheduler setup
-│   │   ├── database.py        # SQLite connection (using sqlite-utils)
-│   │   ├── models.py          # Data structures for Stocks/Alerts
-│   │   ├── engine.py          # Twelve Data API calls & DMA Calculation
-│   │   └── notifier.py        # SMTP/Email logic
+│   │   ├── database.py        # SQLite connection
+│   │   ├── models.py          # Pydantic Models
+│   │   ├── engine.py          # Twelve Data API & Logic
+│   │   └── notifier.py        # Email logic
 │   ├── data/
-│   │   └── stocks.db          # The SQLite database file
-│   ├── requirements.txt       # Dependencies
-│   ├── .env                   # API Keys and Email Credentials
-│   └── Dockerfile             # Docker configuration
-└── docker-compose.yml         # Docker Compose for easy deployment
+│   │   └── stock_monitor.db   # SQLite database
+│   ├── requirements.txt
+│   ├── .env                   # Credentials
+│   └── Dockerfile
+└── docker-compose.yml
 ```
 
 ## Setup Instructions
 
 ### 1. Configure Environment Variables
 
-Edit `backend/.env` and add your credentials:
+Create `backend/.env` with the following content:
 
 ```env
 # Twelve Data API Key
@@ -37,71 +37,30 @@ SMTP_SERVER=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USERNAME=your_email@gmail.com
 SMTP_PASSWORD=your_app_password
+
+# Email Routing
 EMAIL_FROM=your_email@gmail.com
 EMAIL_TO=recipient@example.com
+
+# Optional
+CHART_URL=http://localhost:3000/chart
+ADMIN_TOKEN=secret_token_for_force_check
 ```
 
 ### 2. Local Development Setup
 
 ```bash
-# Navigate to backend directory
 cd backend
 
-# Create virtual environment
+# Create & Activate Virtual Env
 python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# Activate virtual environment
-# On macOS/Linux:
-source venv/bin/activate
-# On Windows:
-# venv\Scripts\activate
-
-# Install dependencies
+# Install Dependencies
 pip install -r requirements.txt
 
-# Run the application
+# Run App (Scheduler starts automatically)
 uvicorn app.main:app --reload
 ```
 
 The API will be available at: `http://localhost:8000`
-
-### 3. Docker Deployment
-
-```bash
-# Build and run with Docker Compose
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop the application
-docker-compose down
-```
-
-## API Documentation
-
-Once running, visit:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-
-## Features
-
-- ✅ Stock price monitoring via Twelve Data API
-- ✅ DMA (Displacement Moving Average) calculations
-- ✅ SQLite database for storing stock data and alerts
-- ✅ Automated scheduler for periodic checks
-- ✅ Email notifications via SMTP
-- ✅ RESTful API with FastAPI
-- ✅ Docker support for easy deployment
-
-## Requirements
-
-- Python 3.11+
-- Twelve Data API Key
-- SMTP-enabled email account (Gmail, etc.)
-
-## Notes
-
-- For Gmail SMTP, you need to use an App Password (not your regular password)
-- The scheduler will run automatically when the application starts
-- Database is created automatically on first run

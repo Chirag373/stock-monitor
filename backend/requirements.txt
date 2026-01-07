@@ -1,9 +1,6 @@
 fastapi
-uvicorn
+uvicorn[standard]
+twelvedata
 sqlite-utils
-httpx
-python-dotenv
-apscheduler
 pydantic
-pydantic-settings
-email-validator
+python-dotenv

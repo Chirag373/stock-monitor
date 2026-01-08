@@ -54,7 +54,16 @@ def get_watchlist():
 @app.post("/watchlist", response_model=models.StockWatchResponse)
 def add_to_watchlist(item: models.StockWatchRequest):
     """Add a stock to monitor."""
-    return database.add_to_watchlist(item.symbol, item.dma_period, item.alert_threshold)
+    # 1. Fetch Company Name (Metadata)
+    company_name = engine.fetch_company_name(item.symbol)
+    
+    # 2. Add to DB
+    return database.add_to_watchlist(
+        item.symbol, 
+        item.dma_period, 
+        item.alert_threshold,
+        company_name=company_name
+    )
 
 
 @app.delete("/watchlist/{symbol}")

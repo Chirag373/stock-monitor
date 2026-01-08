@@ -31,6 +31,9 @@ class StockWatchRequest(BaseModel):
 
 class StockWatchResponse(StockWatchRequest):
     last_price: float = 0.0
+    change: float = 0.0
+    change_percent: float = 0.0
+    company_name: Optional[str] = None
     last_checked: Optional[datetime] = None
 
 

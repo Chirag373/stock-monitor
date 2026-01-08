@@ -63,6 +63,20 @@ def fetch_stock_history(symbol: str, days: int = 300) -> List[Dict[str, Any]]:
     return records
 
 
+def fetch_company_name(symbol: str) -> Optional[str]:
+    """
+    Fetches the company name using Twelve Data's symbol search or quote.
+    """
+    try:
+        # Quote is lightweight and usually contains the name
+        q = TD.quote(symbol=symbol)
+        data = q.as_json()
+        return data.get("name")
+    except Exception as e:
+        logger.error(f"Company name fetch failed for {symbol}: {e}")
+        return None
+
+
 def fetch_latest_snapshot(symbol: str, dma_period: int) -> Optional[Dict[str, Any]]:
     """
     Lightweight fetch for the Alert Engine.
@@ -73,11 +87,23 @@ def fetch_latest_snapshot(symbol: str, dma_period: int) -> Optional[Dict[str, An
         )
         data = ts.as_json()
         latest = data[0]
+        
+        # Calculate daily change if possible
+        change = 0.0
+        change_percent = 0.0
+        
+        if len(data) > 1:
+            prev_close = float(data[1]["close"])
+            curr_close = float(latest["close"])
+            change = curr_close - prev_close
+            change_percent = (change / prev_close) * 100.0
 
         return {
             "symbol": symbol,
             "price": float(latest["close"]),
             "dma": float(latest["sma"]),
+            "change": change,
+            "change_percent": change_percent,
             "datetime": latest["datetime"],
             "dma_period": dma_period,
         }
@@ -103,11 +129,13 @@ def check_crossover(
     # 2. Get Current State
     curr_price = current_data["price"]
     curr_dma = current_data["dma"]
+    change = current_data.get("change", 0.0)
+    change_p = current_data.get("change_percent", 0.0)
 
     # 3. Bootstrap (First Run)
     if not prev_price or not prev_dma:
         logger.info(f"{symbol}: Bootstrapping state (Price: {curr_price})")
-        database.update_market_state(symbol, curr_price, curr_dma)
+        database.update_market_state(symbol, curr_price, curr_dma, change, change_p)
         return
 
     # 4. Crossover Detection
@@ -132,18 +160,18 @@ def check_crossover(
         if crossed_above:
             msg = f"📈 Bullish: {symbol} crossed ABOVE {period} DMA (${curr_dma:.2f})"
             _trigger(symbol, curr_price, period, curr_dma, "crossed above", msg)
-            database.update_market_state(symbol, curr_price, curr_dma)
+            database.update_market_state(symbol, curr_price, curr_dma, change, change_p)
             return
 
         elif crossed_below:
             msg = f"📉 Bearish: {symbol} crossed BELOW {period} DMA (${curr_dma:.2f})"
             _trigger(symbol, curr_price, period, curr_dma, "crossed below", msg)
-            database.update_market_state(symbol, curr_price, curr_dma)
+            database.update_market_state(symbol, curr_price, curr_dma, change, change_p)
             return
 
     # 5. Save State (No cross occurred)
     # Only update if no potential cross is pending validation, or simply update regular tracking.
-    database.update_market_state(symbol, curr_price, curr_dma)
+    database.update_market_state(symbol, curr_price, curr_dma, change, change_p)
 
 
 def _trigger(symbol, price, period, dma, condition, message):

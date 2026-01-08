@@ -19,7 +19,7 @@ def get_db() -> sqlite_utils.Database:
 
 
 def add_to_watchlist(
-    symbol: str, dma_period: int, alert_threshold: float
+    symbol: str, dma_period: int, alert_threshold: float, company_name: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Add or update a stock in the watch list.
@@ -32,7 +32,10 @@ def add_to_watchlist(
         "symbol": symbol,
         "dma_period": dma_period,
         "alert_threshold": alert_threshold,
+        "company_name": company_name,
         "last_price": 0.0,
+        "change": 0.0,
+        "change_percent": 0.0,
         "last_dma": 0.0,
         "last_checked": datetime.utcnow().isoformat(),
     }
@@ -55,7 +58,9 @@ def get_watchlist_item(symbol: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def update_market_state(symbol: str, price: float, dma: float) -> None:
+def update_market_state(
+    symbol: str, price: float, dma: float, change: float = 0.0, change_percent: float = 0.0
+) -> None:
     """
     Updates both Price and DMA after a check cycle.
     Preserves 'Previous State' for the next run.
@@ -66,6 +71,8 @@ def update_market_state(symbol: str, price: float, dma: float) -> None:
         {
             "last_price": price,
             "last_dma": dma,
+            "change": change,
+            "change_percent": change_percent,
             "last_checked": datetime.utcnow().isoformat(),
         },
     )
@@ -123,7 +130,10 @@ def initialize_database() -> None:
                 "symbol": str,
                 "dma_period": int,
                 "alert_threshold": float,
+                "company_name": str,
                 "last_price": float,
+                "change": float,
+                "change_percent": float,
                 "last_dma": float,
                 "last_checked": str,
             },
@@ -134,6 +144,12 @@ def initialize_database() -> None:
     table = db["watch_list"]
     if "last_dma" not in table.columns_dict:
         table.add_column("last_dma", float)
+    if "company_name" not in table.columns_dict:
+        table.add_column("company_name", str)
+    if "change" not in table.columns_dict:
+        table.add_column("change", float)
+    if "change_percent" not in table.columns_dict:
+        table.add_column("change_percent", float)
 
     if "logs" not in db.table_names():
         db["logs"].create(

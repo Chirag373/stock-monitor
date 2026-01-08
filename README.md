@@ -17,9 +17,7 @@ stock-monitor/
 │   ├── data/
 │   │   └── stock_monitor.db   # SQLite database
 │   ├── requirements.txt
-│   ├── .env                   # Credentials
-│   └── Dockerfile
-└── docker-compose.yml
+│   └── .env                   # Credentials
 ```
 
 ## Setup Instructions

@@ -33,6 +33,8 @@ ENV/
 # Database
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 backend/data/*.db
 
 # IDE

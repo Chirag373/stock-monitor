@@ -95,12 +95,13 @@ def remove_from_watchlist(symbol: str) -> bool:
 # ============= LOGS OPERATIONS =============
 
 
-def add_log(symbol: str, message: str) -> Dict[str, Any]:
+def add_log(symbol: str, message: str, alert_type: str = "INFO") -> Dict[str, Any]:
     db = get_db()
     record = {
         "timestamp": datetime.utcnow().isoformat(),
         "symbol": symbol.upper(),
         "message": message,
+        "alert_type": alert_type,
     }
     db["logs"].insert(record)
     return record
@@ -153,9 +154,22 @@ def initialize_database() -> None:
 
     if "logs" not in db.table_names():
         db["logs"].create(
-            {"id": int, "timestamp": str, "symbol": str, "message": str}, pk="id"
+            {
+                "id": int, 
+                "timestamp": str, 
+                "symbol": str, 
+                "message": str, 
+                "alert_type": str
+            }, 
+            pk="id"
         )
         db["logs"].create_index(["timestamp", "symbol"])
+
+    # Migration: Add 'alert_type' to logs
+    if "alert_type" not in db["logs"].columns_dict:
+        db["logs"].add_column("alert_type", str)
+        # Backfill existing values
+        db["logs"].update_where("alert_type IS NULL", {"alert_type": "INFO"})
 
 
 initialize_database()

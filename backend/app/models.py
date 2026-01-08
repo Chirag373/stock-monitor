@@ -47,6 +47,7 @@ class LogResponse(BaseModel):
     timestamp: datetime
     symbol: str
     message: str
+    alert_type: str = "INFO"
 
 
 # ==========================

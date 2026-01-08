@@ -157,15 +157,16 @@ def check_crossover(
             return
 
         # Trigger Logic & Explicit State Update
+        # Trigger Logic & Explicit State Update
         if crossed_above:
-            msg = f"📈 Bullish: {symbol} crossed ABOVE {period} DMA (${curr_dma:.2f})"
-            _trigger(symbol, curr_price, period, curr_dma, "crossed above", msg)
+            msg = f"Price crossed ABOVE {period} DMA"
+            _trigger(symbol, curr_price, period, curr_dma, "crossed above", msg, "BULLISH")
             database.update_market_state(symbol, curr_price, curr_dma, change, change_p)
             return
 
         elif crossed_below:
-            msg = f"📉 Bearish: {symbol} crossed BELOW {period} DMA (${curr_dma:.2f})"
-            _trigger(symbol, curr_price, period, curr_dma, "crossed below", msg)
+            msg = f"Price crossed BELOW {period} DMA"
+            _trigger(symbol, curr_price, period, curr_dma, "crossed below", msg, "BEARISH")
             database.update_market_state(symbol, curr_price, curr_dma, change, change_p)
             return
 
@@ -174,9 +175,9 @@ def check_crossover(
     database.update_market_state(symbol, curr_price, curr_dma, change, change_p)
 
 
-def _trigger(symbol, price, period, dma, condition, message):
-    logger.warning(f"TRIGGER: {message}")
-    database.add_log(symbol, message)
+def _trigger(symbol, price, period, dma, condition, message, alert_type="INFO"):
+    logger.warning(f"TRIGGER: {message} ({alert_type})")
+    database.add_log(symbol, message, alert_type)
     notifier.send_alert_email(symbol, price, period, dma, condition)
 
 
